@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hangman Game</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.0/dist/sweetalert2.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(120deg, #f6d365, #fda085);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #333;
+    }
+  
+    .container {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 15px;
+      padding: 2em;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      max-width: 800px;
+      width: 90%;
+    }
+  
+    #score-level {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1em;
+      font-size: 1.5em;
+      color: #555;
+    }
+  
+    #timer {
+      text-align: center;
+      font-size: 1.5em;
+      margin: 1em 0;
+      color: #444;
+    }
+  
+    #clue-section {
+      font-size: 1.2em;
+      margin: 1em 0;
+      color: #555;
+      font-style: italic;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+  
+    .options {
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s;
+    }
+  
+    .options:hover {
+      background-color: #45a049;
+    }
+  
+    .letters {
+      background-color: #2196F3;
+      border: none;
+      border-radius: 50%;
+      color: white;
+      padding: 10px 15px;
+      margin: 5px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+  
+    .letters:hover {
+      background-color: #1E88E5;
+      transform: scale(1.1);
+    }
+  
+    .letters:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  
+    #user-input-section {
+      margin: 1em 0;
+      font-size: 1.5em;
+      letter-spacing: 0.2em;
+      color: #222;
+    }
+  
+    .dashes {
+      display: inline-block;
+      margin: 0 5px;
+      font-size: 1.5em;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+  
+    #canvas {
+      margin: 1em 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+  
+    #new-game-container {
+      margin-top: 1em;
+    }
+  
+    #new-game-button {
+      background-color: #FF5722;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 1.2em;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+  
+    #new-game-button:hover {
+      background-color: #E64A19;
+      transform: scale(1.05);
+    }
+  
+    .win-msg {
+      color: #4CAF50;
+      animation: fadeIn 1s ease-in-out;
+    }
+  
+    .lose-msg {
+      color: #F44336;
+      animation: fadeIn 1s ease-in-out;
+    }
+  
+    .animated {
+      animation: fadeIn 1s ease-in-out;
+    }
+  
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+  
+</head>
+<body>
+  <div class="container">
+    <div id="score-level">
+      <div>Score: <span id="score">0</span></div>
+      <div>Level: <span id="level">1</span></div>
+    </div>
+    <div id="timer">Time Left: <span id="time">60</span>s</div>
+    <div id="user-input-section" class="animated"></div>
+    <div id="clue-section" style="font-size: 1.2em; margin: 1em 0; color: #555;"></div>
+    <canvas id="canvas" width="200" height="200"></canvas>
+    <div id="letter-container" class="animated"></div>
+    <div id="new-game-container" class="hide">
+      <div id="result-text"></div>
+      <button id="new-game-button">New Game</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.0/dist/sweetalert2.all.min.js"></script>
+  <script>
+    const words = [
+      "javascript", "python", "developer", "software", 
+      "hangman", "programming", "algorithm", "debugging",
+      "database", "framework", "frontend", "backend",
+      "iteration", "variable", "constant", "recursion"
+    ];
+    
+    const clues = [
+      "A popular web scripting language.",
+      "A versatile programming language named after a snake.",
+      "A person who writes code.",
+      "Programs that run on devices.",
+      "The name of this game!",
+      "Writing instructions for a computer.",
+      "A set of rules for problem-solving.",
+      "Finding and fixing code issues.",
+      "Stores data in an organized way.",
+      "A reusable code structure or library.",
+      "The part of a website users interact with.",
+      "The part of a website that handles the logic and database.",
+      "A repeated process in programming.",
+      "A named storage for data that can change.",
+      "A named storage for data that doesn’t change.",
+      "A function calling itself to solve a problem."
+    ];
+
+    let selectedWord = "";
+    let selectedClue = "";
+    let guessedWord = [];
+    let score = 0;
+    let timeLeft = 60;
+    let wrongGuesses = 0;
+    let level = 1;
+    let timerInterval;
+
+    const userInputSection = document.getElementById("user-input-section");
+    const clueSection = document.getElementById("clue-section");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const timerDisplay = document.getElementById("time");
+    const letterContainer = document.getElementById("letter-container");
+    const levelDisplay = document.getElementById("level");
+    const scoreDisplay = document.getElementById("score");
+
+    function resetGame() {
+      const index = Math.floor(Math.random() * words.length);
+      selectedWord = words[index];
+      selectedClue = clues[index];
+      guessedWord = Array(selectedWord.length).fill("_");
+      wrongGuesses = 0;
+      timeLeft = 60 - level * 5;
+      timerDisplay.textContent = timeLeft;
+      updateDisplay();
+      clueSection.textContent = `Clue: ${selectedClue}`;
+      drawHangman(0);
+      createLetterButtons();
+      levelDisplay.textContent = level;
+      scoreDisplay.textContent = score;
+    }
+
+    function updateDisplay() {
+      userInputSection.textContent = guessedWord.join(" ");
+    }
+
+    function createLetterButtons() {
+      letterContainer.innerHTML = "";
+      "abcdefghijklmnopqrstuvwxyz".split("").forEach((letter) => {
+        const button = document.createElement("button");
+        button.textContent = letter;
+        button.classList.add("letters");
+        button.addEventListener("click", () => handleGuess(letter, button));
+        letterContainer.appendChild(button);
+      });
+    }
+
+    function handleGuess(letter, button) {
+      button.disabled = true;
+      if (selectedWord.includes(letter)) {
+        selectedWord.split("").forEach((char, index) => {
+          if (char === letter) guessedWord[index] = char;
+        });
+      } else {
+        wrongGuesses++;
+        drawHangman(wrongGuesses);
+      }
+      checkGameState();
+      updateDisplay();
+    }
+
+    function checkGameState() {
+      if (!guessedWord.includes("_")) {
+        score += 10;
+        level++;
+        Swal.fire({
+          title: 'Congratulations!',
+          text: `You won! Moving to Level ${level}. Your score: ${score}`,
+          icon: 'success',
+          confirmButtonText: 'Next Level'
+        }).then(() => {
+          resetGame();
+          startTimer();
+        });
+      } else if (wrongGuesses >= 6) {
+        Swal.fire({
+          title: 'Game Over!',
+          text: `The word was: ${selectedWord}. Your final score: ${score}`,
+          icon: 'error',
+          confirmButtonText: 'Try Again'
+        }).then(() => {
+          resetGame();
+          startTimer();
+        });
+      }
+    }
+
+    function drawHangman(stage) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (stage >= 1) ctx.moveTo(50, 180), ctx.lineTo(150, 180);
+      if (stage >= 2) ctx.moveTo(100, 180), ctx.lineTo(100, 50);
+      if (stage >= 3) ctx.moveTo(100, 50), ctx.lineTo(150, 50);
+      if (stage >= 4) ctx.moveTo(150, 50), ctx.lineTo(150, 80);
+      if (stage >= 5) ctx.arc(150, 100, 20, 0, Math.PI * 2);
+      if (stage >= 6) ctx.moveTo(150, 120), ctx.lineTo(150, 150);
+      ctx.stroke();
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (timeLeft > 0) {
+          timeLeft--;
+          timerDisplay.textContent = timeLeft;
+        } else {
+          clearInterval(timerInterval);
+          Swal.fire({
+            title: 'Time Over!',
+            text: 'You lost the game.',
+            icon: 'error',
+            confirmButtonText: 'Retry'
+          }).then(() => {
+            resetGame();
+            startTimer();
+          });
+        }
+      }, 1000);
+    }
+
+    resetGame();
+    startTimer();
+  </script>
+</body>
+</html>
